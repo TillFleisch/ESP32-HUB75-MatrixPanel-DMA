@@ -34,7 +34,10 @@
 #include <esp_intr_alloc.h>
 
 #include <esp_err.h>
+
+#if defined(ESP_LOG)
 #include <esp_log.h>
+#endif
 
 #include <driver/gpio.h>
 #include <soc/gpio_sig_map.h>
