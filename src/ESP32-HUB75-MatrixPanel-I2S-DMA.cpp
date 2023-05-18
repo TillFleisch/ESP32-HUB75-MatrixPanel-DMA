@@ -34,13 +34,16 @@
 
 bool MatrixPanel_I2S_DMA::allocateDMAmemory()
 {
-
-  ESP_LOGI("I2S-DMA", "Free heap: %d", heap_caps_get_free_size(MALLOC_CAP_INTERNAL));
-  ESP_LOGI("I2S-DMA", "Free SPIRAM: %d", heap_caps_get_free_size(MALLOC_CAP_SPIRAM));
+  #if defined(ESP_LOG)
+    ESP_LOGI("I2S-DMA", "Free heap: %d", heap_caps_get_free_size(MALLOC_CAP_INTERNAL));
+    ESP_LOGI("I2S-DMA", "Free SPIRAM: %d", heap_caps_get_free_size(MALLOC_CAP_SPIRAM));
+  #endif
 
   // Alright, theoretically we should be OK, so let us do this, so
   // lets allocate a chunk of memory for each row (a row could span multiple panels if chaining is in place)
-  ESP_LOGI("I2S-DMA", "allocating rowBitStructs with pixel_color_depth_bits of %d", m_cfg.getPixelColorDepthBits());
+  #if defined(ESP_LOG)
+    ESP_LOGI("I2S-DMA", "allocating rowBitStructs with pixel_color_depth_bits of %d", m_cfg.getPixelColorDepthBits());
+  #endif
   // iterate through number of rows, allocate memory for each
   size_t allocated_fb_memory = 0;
 
@@ -55,8 +58,10 @@ bool MatrixPanel_I2S_DMA::allocateDMAmemory()
 
       if (ptr->data == nullptr)
       {
-        ESP_LOGE("I2S-DMA", "CRITICAL ERROR: Not enough memory for requested colour depth! Please reduce pixel_color_depth_bits value.\r\n");
-        ESP_LOGE("I2S-DMA", "Could not allocate rowBitStruct %d!.\r\n", malloc_num);
+        #if defined(ESP_LOG)
+          ESP_LOGE("I2S-DMA", "CRITICAL ERROR: Not enough memory for requested colour depth! Please reduce pixel_color_depth_bits value.\r\n");
+          ESP_LOGE("I2S-DMA", "Could not allocate rowBitStruct %d!.\r\n", malloc_num);
+        #endif
 
         return false;
         // TODO: should we release all previous rowBitStructs here???
@@ -67,15 +72,18 @@ bool MatrixPanel_I2S_DMA::allocateDMAmemory()
       ++frame_buffer[fb].rows;
     }
   }
-  ESP_LOGI("I2S-DMA", "Allocating %d bytes memory for DMA BCM framebuffer(s).", allocated_fb_memory);
-
+  #if defined(ESP_LOG)
+    ESP_LOGI("I2S-DMA", "Allocating %d bytes memory for DMA BCM framebuffer(s).", allocated_fb_memory);
+  #endif
   // calculate the lowest LSBMSB_TRANSITION_BIT value that will fit in memory that will meet or exceed the configured refresh rate
   
 //#define FORCE_COLOR_DEPTH 1
   
 #if !defined(FORCE_COLOR_DEPTH)
 
-  ESP_LOGI("I2S-DMA", "Minimum visual refresh rate (scan rate from panel top to bottom) requested: %d Hz", m_cfg.min_refresh_rate);
+  #if defined(ESP_LOG)
+    ESP_LOGI("I2S-DMA", "Minimum visual refresh rate (scan rate from panel top to bottom) requested: %d Hz", m_cfg.min_refresh_rate);
+  #endif
 
   while (1)
   {
@@ -93,7 +101,9 @@ bool MatrixPanel_I2S_DMA::allocateDMAmemory()
     int actualRefreshRate = 1000000000UL / (nsPerFrame);
     calculated_refresh_rate = actualRefreshRate;
 
-    ESP_LOGW("I2S-DMA", "lsbMsbTransitionBit of %d gives %d Hz refresh rate.", lsbMsbTransitionBit, actualRefreshRate);
+    #if defined(ESP_LOG)
+      ESP_LOGW("I2S-DMA", "lsbMsbTransitionBit of %d gives %d Hz refresh rate.", lsbMsbTransitionBit, actualRefreshRate);
+    #endif
 
     if (actualRefreshRate > m_cfg.min_refresh_rate)
       break;
@@ -106,10 +116,14 @@ bool MatrixPanel_I2S_DMA::allocateDMAmemory()
 
   if (lsbMsbTransitionBit > 0)
   {
-    ESP_LOGW("I2S-DMA", "lsbMsbTransitionBit of %d used to achieve refresh rate of %d Hz. Percieved colour depth to the eye may be reduced.", lsbMsbTransitionBit, m_cfg.min_refresh_rate);
+    #if defined(ESP_LOG)
+      ESP_LOGW("I2S-DMA", "lsbMsbTransitionBit of %d used to achieve refresh rate of %d Hz. Percieved colour depth to the eye may be reduced.", lsbMsbTransitionBit, m_cfg.min_refresh_rate);
+    #endif
   }
 
-  ESP_LOGI("I2S-DMA", "DMA has pixel_color_depth_bits of %d", m_cfg.getPixelColorDepthBits() - lsbMsbTransitionBit);
+  #if defined(ESP_LOG)
+    ESP_LOGI("I2S-DMA", "DMA has pixel_color_depth_bits of %d", m_cfg.getPixelColorDepthBits() - lsbMsbTransitionBit);
+  #endif
 
 #endif
 
@@ -123,14 +137,18 @@ bool MatrixPanel_I2S_DMA::allocateDMAmemory()
     numDMAdescriptorsPerRow += (1 << (i - lsbMsbTransitionBit - 1));
   }
 
-  ESP_LOGI("I2S-DMA", "Recalculated number of DMA descriptors per row: %d", numDMAdescriptorsPerRow);
+  #if defined(ESP_LOG)
+    ESP_LOGI("I2S-DMA", "Recalculated number of DMA descriptors per row: %d", numDMAdescriptorsPerRow);
+  #endif
 
   // Refer to 'DMA_LL_PAYLOAD_SPLIT' code in configureDMA() below to understand why this exists.
   // numDMAdescriptorsPerRow is also used to calculate descount which is super important in i2s_parallel_config_t SoC DMA setup.
   if (frame_buffer[0].rowBits[0]->getColorDepthSize() > DMA_MAX)
   {
 
-    ESP_LOGW("I2S-DMA", "rowBits struct is too large to fit in one DMA transfer payload, splitting required. Adding %d DMA descriptors\n", m_cfg.getPixelColorDepthBits() - 1);
+    #if defined(ESP_LOG)
+      ESP_LOGW("I2S-DMA", "rowBits struct is too large to fit in one DMA transfer payload, splitting required. Adding %d DMA descriptors\n", m_cfg.getPixelColorDepthBits() - 1);
+    #endif
 
     numDMAdescriptorsPerRow += m_cfg.getPixelColorDepthBits() - 1;
     // Note: If numDMAdescriptorsPerRow is even just one descriptor too large, DMA linked list will not correctly loop.
@@ -261,7 +279,9 @@ void MatrixPanel_I2S_DMA::configureDMA(const HUB75_I2S_CFG &_cfg)
 
   } // end frame rows
 
-  ESP_LOGI("I2S-DMA", "%d DMA descriptors linked to buffer data.", current_dmadescriptor_offset);
+  #if defined(ESP_LOG)
+    ESP_LOGI("I2S-DMA", "%d DMA descriptors linked to buffer data.", current_dmadescriptor_offset);
+  #endif
 
   //
   //    Setup DMA and Output to GPIO
@@ -302,8 +322,10 @@ void MatrixPanel_I2S_DMA::configureDMA(const HUB75_I2S_CFG &_cfg)
   flipDMABuffer(); // display back buffer 0, draw to 1, ignored if double buffering isn't enabled.
 
   // i2s_parallel_send_dma(ESP32_I2S_DEVICE, &dmadesc_a[0]);
-  ESP_LOGI("I2S-DMA", "DMA setup completed");
-
+  #if defined(ESP_LOG)
+    ESP_LOGI("I2S-DMA", "DMA setup completed");
+  #endif
+  
 } // end initMatrixDMABuff
 
 /* There are 'bits' set in the frameStruct that we simply don't need to set every single time we change a pixel / DMA buffer co-ordinate.

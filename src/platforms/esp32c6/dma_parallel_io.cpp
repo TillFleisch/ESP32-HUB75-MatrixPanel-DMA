@@ -104,7 +104,9 @@ void Bus_Parallel16::config(const config_t &cfg)
 
 bool Bus_Parallel16::init(void)
 {
-    ESP_LOGI("ESP32-C6", "Performing DMA bus init() for ESP-C6");
+    #if defined(ESP_LOG)
+      ESP_LOGI("ESP32-C6", "Performing DMA bus init() for ESP-C6");
+    #endif
 
     periph_module_enable(PERIPH_PARLIO_MODULE);
     periph_module_reset (PERIPH_PARLIO_MODULE);
@@ -123,8 +125,10 @@ bool Bus_Parallel16::init(void)
     parlio_ll_tx_set_clock_div(&PARL_IO, div);
     _cfg.bus_freq = periph_src_clk_hz / div;
 
-    ESP_LOGI("C6", "Clock divider is %d", (int)div);
-    ESP_LOGD("C6", "Resulting output clock frequency: %d Mhz", (int)(160000000L /  _cfg.bus_freq));
+    #if defined(ESP_LOG)
+      ESP_LOGI("C6", "Clock divider is %d", (int)div);
+      ESP_LOGD("C6", "Resulting output clock frequency: %d Mhz", (int)(160000000L /  _cfg.bus_freq));
+    #endif
 
 
     // Allocate DMA channel and connect it to the LCD peripheral
@@ -228,7 +232,9 @@ void Bus_Parallel16::release(void)
 
 void Bus_Parallel16::enable_double_dma_desc(void)
 {
-    ESP_LOGI("C6", "Enabled support for secondary DMA buffer.");
+    #if defined(ESP_LOG)
+      ESP_LOGI("C6", "Enabled support for secondary DMA buffer.");
+    #endif
     _double_dma_buffer = true;
 }
 
@@ -239,13 +245,17 @@ bool Bus_Parallel16::allocate_dma_desc_memory(size_t len)
         heap_caps_free(_dmadesc_a); // free all dma descrptios previously
     _dmadesc_count = len;
 
-    ESP_LOGD("C6", "Allocating %d bytes memory for DMA descriptors.", (int)sizeof(HUB75_DMA_DESCRIPTOR_T) * len);
+    #if defined(ESP_LOG)
+      ESP_LOGD("C6", "Allocating %d bytes memory for DMA descriptors.", (int)sizeof(HUB75_DMA_DESCRIPTOR_T) * len);
+    #endif
 
     _dmadesc_a = (HUB75_DMA_DESCRIPTOR_T *)heap_caps_malloc(sizeof(HUB75_DMA_DESCRIPTOR_T) * len, MALLOC_CAP_DMA);
 
     if (_dmadesc_a == nullptr)
     {
-        ESP_LOGE("C6", "ERROR: Couldn't malloc _dmadesc_a. Not enough memory.");
+        #if defined(ESP_LOG)
+          ESP_LOGE("C6", "ERROR: Couldn't malloc _dmadesc_a. Not enough memory.");
+        #endif
         return false;
     }
 
@@ -255,7 +265,9 @@ bool Bus_Parallel16::allocate_dma_desc_memory(size_t len)
 
         if (_dmadesc_b == nullptr)
         {
-            ESP_LOGE("C6", "ERROR: Couldn't malloc _dmadesc_b. Not enough memory.");
+            #if defined(ESP_LOG)
+              ESP_LOGE("C6", "ERROR: Couldn't malloc _dmadesc_b. Not enough memory.");
+            #endif
             _double_dma_buffer = false;
         }
     }
@@ -274,7 +286,9 @@ void Bus_Parallel16::create_dma_desc_link(void *data, size_t size, bool dmadesc_
     if (size > MAX_DMA_LEN)
     {
         size = MAX_DMA_LEN;
-        ESP_LOGW("C6", "Creating DMA descriptor which links to payload with size greater than MAX_DMA_LEN!");
+        #if defined(ESP_LOG)
+          ESP_LOGW("C6", "Creating DMA descriptor which links to payload with size greater than MAX_DMA_LEN!");
+        #endif
     }
 
     if (dmadesc_b == true)
@@ -302,7 +316,9 @@ void Bus_Parallel16::create_dma_desc_link(void *data, size_t size, bool dmadesc_
 
         if (_dmadesc_a_idx >= _dmadesc_count)
         {
-            ESP_LOGE("C6", "Attempted to create more DMA descriptors than allocated. Expecting max %u descriptors.", (unsigned int)_dmadesc_count);
+            #if defined(ESP_LOG)
+              ESP_LOGE("C6", "Attempted to create more DMA descriptors than allocated. Expecting max %u descriptors.", (unsigned int)_dmadesc_count);
+            #endif
             return;
         }
 

@@ -47,7 +47,9 @@ void MatrixPanel_I2S_DMA::shiftDriver(const HUB75_I2S_CFG& _cfg){
 
 void MatrixPanel_I2S_DMA::fm6124init(const HUB75_I2S_CFG& _cfg) {
 
-    ESP_LOGI("LEDdrivers", "MatrixPanel_I2S_DMA - initializing FM6124 driver...");
+    #if defined(ESP_LOG)
+        ESP_LOGI("LEDdrivers", "MatrixPanel_I2S_DMA - initializing FM6124 driver...");
+    #endif
 
     bool REG1[16] = {0,0,0,0,0, 1,1,1,1,1,1, 0,0,0,0,0};    // this sets global matrix brightness power
     bool REG2[16] = {0,0,0,0,0, 0,0,0,0,1,0, 0,0,0,0,0};    // a single bit enables the matrix output
@@ -106,7 +108,9 @@ void MatrixPanel_I2S_DMA::fm6124init(const HUB75_I2S_CFG& _cfg) {
 
 void MatrixPanel_I2S_DMA::dp3246init(const HUB75_I2S_CFG& _cfg) {
 
-    ESP_LOGI("LEDdrivers", "MatrixPanel_I2S_DMA - initializing DP3246 driver...");
+    #if defined(ESP_LOG)
+        ESP_LOGI("LEDdrivers", "MatrixPanel_I2S_DMA - initializing DP3246 driver...");
+    #endif
 
     // DP3246 needs positive clock edge
     m_cfg.clkphase = true;
